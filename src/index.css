@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Sleek premium fintech palette — deep black, gold accent, high-contrast
+     white text. No light mode: the brief calls for one deliberate dark
+     look, not a theme toggle. */
+  --color-surface: #0a0a0a;
+  --color-surface-raised: #141414;
+  --color-surface-sunken: #000000;
+  --color-border: #262626;
+
+  --color-ink: #ffffff;
+  --color-ink-muted: #a3a3a3;
+  --color-ink-faint: #6b6b6b;
+
+  /* Gold — the one accent, used for the hero number, primary actions, and
+     anything that should read as "this is the important thing." */
+  --color-gold-50: #2b2210;
+  --color-gold-100: #3d2f14;
+  --color-gold-200: #5c481c;
+  --color-gold-300: #866826;
+  --color-gold-400: #ab8130;
+  --color-gold-500: #c9962a;
+  --color-gold-600: #e0ac3d;
+  --color-gold-700: #edc06a;
+  --color-gold-800: #f4d493;
+  --color-gold-900: #fae8c2;
+
+  /* Semantic — spend pace / free-money sign, kept legible against the
+     black surfaces rather than pulled from a generic red/green pair. */
+  --color-good: #4cae72;
+  --color-warn: #d9633f;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-raised: 0 2px 8px rgba(0, 0, 0, 0.5), 0 16px 40px -16px rgba(0, 0, 0, 0.8);
+}
+
+html {
+  background: var(--color-surface);
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+/* Prevents iOS Safari auto-zooming into inputs on focus (needs >=16px),
+   which otherwise yanks the viewport around and requires a manual
+   pinch-out afterward just to reach the next field. !important because it
+   must win over each input's own utility class, not just the base element
+   style. */
+input,
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+.app-frame {
+  background: var(--color-surface);
+}
+
+@media (min-width: 640px) {
+  .app-frame {
+    max-width: 36rem;
+    margin-inline: auto;
+    min-height: 100dvh;
+  }
+}
