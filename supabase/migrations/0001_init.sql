@@ -19,6 +19,14 @@ alter table profiles enable row level security;
 create table settings (
   profile_id uuid primary key references profiles(id) on delete cascade,
   rough_monthly_income_cents bigint,
+  -- Regenerated once per calendar day for the Home page's brief AI insight —
+  -- cached here so Home doesn't call Claude on every page load.
+  home_insight_text text,
+  home_insight_date date,
+  -- Insights page's monthly narrative + noticed patterns — also
+  -- once-per-day cached, same reasoning as home_insight above.
+  insights_narrative jsonb,
+  insights_date date,
   updated_at timestamptz not null default now()
 );
 alter table settings enable row level security;

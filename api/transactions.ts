@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { withAuth } from './_lib/handler.js'
 import { getProfileId } from './_lib/supabase.js'
-import { getTransactionsInRange, listRecentTransactions, updateTransaction, monthBounds } from './_lib/repositories/transactions.js'
+import { getTransactionsInRange, listRecentTransactions, updateTransaction, monthBounds, weekBounds } from './_lib/repositories/transactions.js'
 import { computeMonthFinancials, currentMonthString, type AccountView } from './_lib/freeMoney.js'
 import { recordCorrection } from './_lib/categorize.js'
+import { computeSpendingPace } from './_lib/stats.js'
 
 function parseView(raw: unknown): AccountView {
   return raw === 'checking' || raw === 'credit' ? raw : 'combined'
@@ -35,6 +36,45 @@ async function handler(req: VercelRequest, res: VercelResponse) {
     const view = parseView(req.query.view)
     const summary = await computeMonthFinancials(profileId, month, view)
     res.status(200).json({ data: summary })
+    return
+  }
+
+  if (req.method === 'GET' && action === 'pace') {
+    const month = (req.query.month as string | undefined) ?? currentMonthString()
+    const pace = await computeSpendingPace(profileId, month)
+    res.status(200).json({ data: pace })
+    return
+  }
+
+  if (req.method === 'GET' && action === 'category-summary') {
+    const period = req.query.period === 'week' ? 'week' : 'month'
+    const month = (req.query.month as string | undefined) ?? currentMonthString()
+    const view = parseView(req.query.view)
+    const { start, end } = period === 'week' ? weekBounds() : monthBounds(month)
+    const accountTypes = view === 'checking' ? (['checking'] as const) : view === 'credit' ? (['credit'] as const) : undefined
+    const rows = await getTransactionsInRange(profileId, start, end, accountTypes ? [...accountTypes] : undefined)
+    const totals: Record<string, { total_cents: number; count: number }> = {}
+    for (const r of rows) {
+      // Flagged/one-time rows are deliberately excluded here — this is a
+      // pattern view (per the brief: "shown separately so they don't skew
+      // patterns"), unlike free-money-remaining which counts them.
+      if (r.is_internal_transfer || r.is_flagged_unusual || r.amount_cents >= 0) continue
+      const key = r.category_id ?? 'uncategorized'
+      totals[key] ??= { total_cents: 0, count: 0 }
+      totals[key].total_cents += Math.abs(r.amount_cents)
+      totals[key].count += 1
+    }
+    res.status(200).json({ data: totals })
+    return
+  }
+
+  if (req.method === 'GET' && action === 'flagged') {
+    const month = (req.query.month as string | undefined) ?? currentMonthString()
+    const view = parseView(req.query.view)
+    const { start, end } = monthBounds(month)
+    const accountTypes = view === 'checking' ? (['checking'] as const) : view === 'credit' ? (['credit'] as const) : undefined
+    const rows = await getTransactionsInRange(profileId, start, end, accountTypes ? [...accountTypes] : undefined)
+    res.status(200).json({ data: rows.filter((r) => r.is_flagged_unusual) })
     return
   }
 

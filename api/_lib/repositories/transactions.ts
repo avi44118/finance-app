@@ -33,6 +33,18 @@ export function monthBounds(month: string): { start: string; end: string } {
   return { start, end }
 }
 
+/** Half-open [weekStart, weekEnd) bounds for the calendar week (Sunday-Saturday) containing referenceDate. */
+export function weekBounds(referenceDate: Date = new Date()): { start: string; end: string } {
+  const d = new Date(referenceDate)
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() - d.getDay())
+  const start = d.toISOString().slice(0, 10)
+  const endDate = new Date(d)
+  endDate.setDate(endDate.getDate() + 7)
+  const end = endDate.toISOString().slice(0, 10)
+  return { start, end }
+}
+
 export async function getTransactionsInRange(
   profileId: string,
   startDate: string,

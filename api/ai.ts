@@ -5,6 +5,8 @@ import { runChatTurn } from './_lib/claude.js'
 import { getRecentMessages, appendMessages } from './_lib/repositories/chatMessages.js'
 import { getPendingAction, isActionable, resolvePendingAction } from './_lib/repositories/pendingActions.js'
 import { executeTool } from './_lib/tools/executors.js'
+import { getHomeInsight } from './_lib/homeInsight.js'
+import { getMonthlyNarrative } from './_lib/monthlyNarrative.js'
 
 // Streams as newline-delimited JSON so the reply flows in on the client as
 // the model actually generates it, instead of waiting for the whole
@@ -78,9 +80,30 @@ async function handleConfirmAction(req: VercelRequest, res: VercelResponse) {
   res.status(200).json({ status: 'confirmed', result: result.toolResultContent, ui_events: result.uiEvents })
 }
 
+async function handleHomeInsight(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'method not allowed' })
+    return
+  }
+  const text = await getHomeInsight()
+  res.status(200).json({ data: { text } })
+}
+
+async function handleMonthlyNarrative(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'method not allowed' })
+    return
+  }
+  const data = await getMonthlyNarrative()
+  res.status(200).json({ data })
+}
+
 // Consolidated to stay under Vercel Hobby's serverless function count limit.
 async function handler(req: VercelRequest, res: VercelResponse) {
   const action = req.query.action as string | undefined
+  if (action === 'home-insight') return handleHomeInsight(req, res)
+  if (action === 'monthly-narrative') return handleMonthlyNarrative(req, res)
+
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'method not allowed' })
     return
