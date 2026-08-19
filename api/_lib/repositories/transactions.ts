@@ -33,6 +33,13 @@ export function monthBounds(month: string): { start: string; end: string } {
   return { start, end }
 }
 
+/** 'YYYY-MM' shifted by delta months (negative goes back) — handles year boundaries in both directions. */
+export function shiftMonth(month: string, delta: number): string {
+  const [y, m] = month.split('-').map(Number)
+  const total = y * 12 + (m - 1) + delta
+  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`
+}
+
 /** Half-open [weekStart, weekEnd) bounds for the calendar week (Sunday-Saturday) containing referenceDate. */
 export function weekBounds(referenceDate: Date = new Date()): { start: string; end: string } {
   const d = new Date(referenceDate)
@@ -105,6 +112,28 @@ export async function updateTransaction(profileId: string, id: string, patch: Tr
     .single()
   if (error || !data) throw new Error(error?.message ?? 'Transaction not found')
   return data as TransactionRow
+}
+
+/** Soft-archives a batch of transactions (rollup compaction) — the rows still exist for the purge grace period, just excluded from the "active" indexed queries that filter on archived_at is null. */
+export async function archiveTransactions(profileId: string, ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+  const supabase = getSupabaseAdmin()
+  const { error } = await supabase.from('transactions').update({ archived_at: new Date().toISOString() }).eq('profile_id', profileId).in('id', ids)
+  if (error) throw new Error(error.message)
+}
+
+/** Hard-deletes transactions archived before the cutoff — the actual purge, one cron cycle after archiving, once their monthly_summaries row is the durable record. */
+export async function purgeArchivedBefore(profileId: string, cutoffIso: string): Promise<number> {
+  const supabase = getSupabaseAdmin()
+  const { data, error } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('profile_id', profileId)
+    .not('archived_at', 'is', null)
+    .lt('archived_at', cutoffIso)
+    .select('id')
+  if (error) throw new Error(error.message)
+  return (data ?? []).length
 }
 
 /** A cash/manual entry logged directly through chat — no import batch, no confirm ceremony (per the brief: "AI logs it immediately"). */

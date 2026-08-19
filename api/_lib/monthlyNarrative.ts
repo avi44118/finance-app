@@ -1,7 +1,7 @@
 import { getSupabaseAdmin, getProfileId } from './supabase.js'
 import { getAnthropicClient, MODEL } from './anthropicClient.js'
 import { computeMonthFinancials, currentMonthString } from './freeMoney.js'
-import { getTransactionsInRange, monthBounds } from './repositories/transactions.js'
+import { getTransactionsInRange, monthBounds, shiftMonth } from './repositories/transactions.js'
 import { listCategories } from './repositories/categories.js'
 import { centsToDisplay } from './ingestion.js'
 
@@ -22,12 +22,6 @@ function categoryTotals(rows: Awaited<ReturnType<typeof getTransactionsInRange>>
     totals[key].count += 1
   }
   return totals
-}
-
-function shiftMonth(month: string, delta: number): string {
-  const [y, m] = month.split('-').map(Number)
-  const total = y * 12 + (m - 1) + delta
-  return `${Math.floor(total / 12)}-${String((total % 12) + 1).padStart(2, '0')}`
 }
 
 export interface MonthlyNarrative {
