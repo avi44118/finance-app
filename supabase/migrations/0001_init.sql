@@ -64,11 +64,12 @@ create table chat_messages (
   profile_id uuid not null references profiles(id) on delete cascade,
   role text not null check (role in ('user', 'assistant')),
   content jsonb not null,
-  sequence bigint generated always as identity,
+  page_context text,
+  seq bigint generated always as identity,
   created_at timestamptz not null default now()
 );
 alter table chat_messages enable row level security;
-create index chat_messages_profile_seq on chat_messages (profile_id, sequence);
+create index chat_messages_profile_seq on chat_messages (profile_id, seq);
 
 -- Confirm-before-apply staging for AI-initiated writes that need a "yes"
 -- first (unusual-transaction flags, settings changes, new categories).
@@ -80,9 +81,9 @@ create table pending_actions (
   profile_id uuid not null references profiles(id) on delete cascade,
   tool_name text not null,
   tool_input jsonb not null,
-  summary text not null,
   status text not null default 'pending' check (status in ('pending', 'confirmed', 'cancelled', 'expired')),
   created_at timestamptz not null default now(),
+  resolved_at timestamptz,
   expires_at timestamptz not null default (now() + interval '2 hours')
 );
 alter table pending_actions enable row level security;

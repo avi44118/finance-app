@@ -22,7 +22,7 @@ alter table import_batches enable row level security;
 create table transactions (
   id uuid primary key default gen_random_uuid(),
   profile_id uuid not null references profiles(id) on delete cascade,
-  account_type text not null check (account_type in ('checking', 'credit')),
+  account_type text not null check (account_type in ('checking', 'credit', 'cash')), -- 'cash' = manual/cash entries with no linked account — shown in combined view only, never a checking/credit drill-down
   posted_date date not null,
   description text not null,
   merchant_normalized text not null,
